@@ -30,4 +30,4 @@ The workflow in `.github/workflows/deploy-pages.yml` builds and deploys the site
 
 ## Current storage behavior
 
-Lesson completion is stored in the learner's browser using `localStorage`. There is no database, account system, analytics, or external API.
+The learner's name, lesson position, and completion status are stored in that browser using `localStorage`. There is no database, account system, analytics, or external API, so progress does not sync between devices.

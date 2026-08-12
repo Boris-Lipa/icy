@@ -17,34 +17,36 @@ const lessonSteps = [
 const phrases = [
   {
     latin: "Zdravo!",
-    cyrillic: "Здраво!",
     english: "Hello!",
     note: "Friendly and useful at any time of day.",
   },
   {
     latin: "Dobar dan!",
-    cyrillic: "Добар дан!",
     english: "Good day!",
     note: "A polite greeting from late morning to early evening.",
   },
   {
     latin: "Ćao!",
-    cyrillic: "Ћао!",
     english: "Hi! / Bye!",
     note: "Casual. Use it with friends and people you know.",
   },
 ];
 
 const phrasebook = [
-  ["Zdravo!", "Здраво!", "Hello!"],
-  ["Dobro jutro!", "Добро јутро!", "Good morning!"],
-  ["Dobar dan!", "Добар дан!", "Good day!"],
-  ["Dobro veče!", "Добро вече!", "Good evening!"],
-  ["Kako si?", "Како си?", "How are you? (informal)"],
-  ["Dobro sam, hvala.", "Добро сам, хвала.", "I’m well, thank you."],
-  ["Zovem se…", "Зовем се…", "My name is…"],
-  ["Drago mi je.", "Драго ми је.", "Nice to meet you."],
+  ["Zdravo!", "Hello!"],
+  ["Dobro jutro!", "Good morning!"],
+  ["Dobar dan!", "Good day!"],
+  ["Dobro veče!", "Good evening!"],
+  ["Kako si?", "How are you? (informal)"],
+  ["Dobro sam, hvala.", "I’m well, thank you."],
+  ["Zovem se…", "My name is…"],
+  ["Drago mi je.", "Nice to meet you."],
 ];
+
+const learnerNameKey = "samo-polako-learner-name";
+const lessonCompleteKey = "samo-polako-lesson-1";
+const lessonStartedKey = "samo-polako-lesson-1-started";
+const lessonStepKey = "samo-polako-lesson-1-step";
 
 function speak(text: string) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -83,16 +85,28 @@ function Icon({ name }: { name: "home" | "book" | "chat" | "chart" | "sound" | "
 export default function Home() {
   const [view, setView] = useState<View>("home");
   const [step, setStep] = useState(0);
-  const [showCyrillic, setShowCyrillic] = useState(true);
   const [answer, setAnswer] = useState<AnswerState>("idle");
   const [sentence, setSentence] = useState<string[]>([]);
   const [sentenceChecked, setSentenceChecked] = useState<AnswerState>("idle");
   const [dialogueAnswer, setDialogueAnswer] = useState<AnswerState>("idle");
   const [lessonComplete, setLessonComplete] = useState(false);
+  const [lessonStarted, setLessonStarted] = useState(false);
+  const [learnerName, setLearnerName] = useState("");
+  const [nameDraft, setNameDraft] = useState("");
+  const [namePromptOpen, setNamePromptOpen] = useState(false);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
-    setLessonComplete(window.localStorage.getItem("samo-polako-lesson-1") === "complete");
+    const savedName = window.localStorage.getItem(learnerNameKey)?.trim() ?? "";
+    const completed = window.localStorage.getItem(lessonCompleteKey) === "complete";
+    const savedStep = Number(window.localStorage.getItem(lessonStepKey));
+
+    setLearnerName(savedName);
+    setNameDraft(savedName);
+    setNamePromptOpen(!savedName);
+    setLessonComplete(completed);
+    setLessonStarted(completed || window.localStorage.getItem(lessonStartedKey) === "true");
+    if (Number.isInteger(savedStep)) setStep(Math.max(0, Math.min(savedStep, lessonSteps.length - 1)));
   }, []);
 
   const filteredPhrases = useMemo(() => {
@@ -102,6 +116,9 @@ export default function Home() {
   }, [query]);
 
   function beginLesson(startStep = 0) {
+    window.localStorage.setItem(lessonStartedKey, "true");
+    window.localStorage.setItem(lessonStepKey, String(startStep));
+    setLessonStarted(true);
     setStep(startStep);
     setAnswer("idle");
     setSentence([]);
@@ -111,12 +128,16 @@ export default function Home() {
   }
 
   function completeLesson() {
-    window.localStorage.setItem("samo-polako-lesson-1", "complete");
+    window.localStorage.setItem(lessonCompleteKey, "complete");
+    window.localStorage.setItem(lessonStartedKey, "true");
     setLessonComplete(true);
+    setLessonStarted(true);
   }
 
   function goToStep(nextStep: number) {
-    setStep(Math.max(0, Math.min(nextStep, lessonSteps.length - 1)));
+    const safeStep = Math.max(0, Math.min(nextStep, lessonSteps.length - 1));
+    window.localStorage.setItem(lessonStepKey, String(safeStep));
+    setStep(safeStep);
     setAnswer("idle");
     setSentenceChecked("idle");
     setDialogueAnswer("idle");
@@ -128,6 +149,21 @@ export default function Home() {
       current.includes(word) ? current.filter((item) => item !== word) : [...current, word],
     );
   }
+
+  function saveLearnerName() {
+    const cleanName = nameDraft.trim();
+    if (!cleanName) return;
+    window.localStorage.setItem(learnerNameKey, cleanName);
+    setLearnerName(cleanName);
+    setNameDraft(cleanName);
+    setNamePromptOpen(false);
+  }
+
+  const lessonProgress = lessonComplete ? 100 : lessonStarted ? ((step + 1) / lessonSteps.length) * 100 : 0;
+  const courseProgress = lessonComplete ? 8 : 0;
+  const lessonAction = lessonComplete ? "Review lesson" : lessonStarted ? "Continue lesson" : "Start lesson";
+  const displayName = learnerName || "there";
+  const avatarLetter = learnerName.charAt(0).toUpperCase() || "S";
 
   const navItems: { id: View; label: string; icon: "home" | "book" | "chat" }[] = [
     { id: "home", label: "Home", icon: "home" },
@@ -167,23 +203,23 @@ export default function Home() {
         <div className="sidebar-course">
           <div className="course-label">
             <span>Current course</span>
-            <span>{lessonComplete ? "18" : "8"}%</span>
+            <span>{courseProgress}%</span>
           </div>
           <strong>Serbian foundations</strong>
-          <div className="mini-progress" aria-label={`${lessonComplete ? 18 : 8}% complete`}>
-            <span style={{ width: lessonComplete ? "18%" : "8%" }} />
+          <div className="mini-progress" aria-label={`${courseProgress}% complete`}>
+            <span style={{ width: `${courseProgress}%` }} />
           </div>
           <small>A1 • Absolute beginner</small>
         </div>
 
-        <div className="learner-card">
-          <div className="avatar">E</div>
+        <button className="learner-card" onClick={() => setNamePromptOpen(true)} aria-label="Change learner name">
+          <div className="avatar">{avatarLetter}</div>
           <div>
-            <strong>Ćao, learner!</strong>
+            <strong>Ćao, {displayName}!</strong>
             <small>Day 1 of your journey</small>
           </div>
           <span className="streak" title="Learning streak">1</span>
-        </div>
+        </button>
       </aside>
 
       <main className="main-content">
@@ -221,11 +257,11 @@ export default function Home() {
                 <h2>{lessonComplete ? "Ready for a quick review?" : "Your first Serbian conversation"}</h2>
                 <p>Learn to greet someone, introduce yourself, and hear one of Serbian’s most important sounds.</p>
                 <div className="progress-row">
-                  <div className="progress-track"><span style={{ width: lessonComplete ? "100%" : "16%" }} /></div>
-                  <small>{lessonComplete ? "Lesson complete" : "1 of 6 steps"}</small>
+                  <div className="progress-track"><span style={{ width: `${lessonProgress}%` }} /></div>
+                  <small>{lessonComplete ? "Lesson complete" : lessonStarted ? `${step + 1} of ${lessonSteps.length} steps` : "Not started"}</small>
                 </div>
                 <button className="primary-button" onClick={() => beginLesson(lessonComplete ? 0 : step)}>
-                  {lessonComplete ? "Review lesson" : "Continue lesson"}<span>→</span>
+                  {lessonAction}<span>→</span>
                 </button>
               </div>
             </section>
@@ -236,13 +272,13 @@ export default function Home() {
                 <span className="path-duration">12 bite-sized lessons</span>
               </div>
               <div className="learning-path">
-                <article className="path-card current" onClick={() => beginLesson(0)}>
-                  <div className="path-top"><span className="unit-number">01</span><span className="status-pill">IN PROGRESS</span></div>
+                <article className="path-card current" onClick={() => beginLesson(lessonComplete ? 0 : step)}>
+                  <div className="path-top"><span className="unit-number">01</span><span className="status-pill">{lessonComplete ? "COMPLETE" : lessonStarted ? "IN PROGRESS" : "READY"}</span></div>
                   <div className="path-icon coral"><Icon name="chat" /></div>
                   <h3>First conversations</h3>
                   <p>Greetings, names, polite phrases, and the sounds that make Serbian feel readable.</p>
-                  <div className="lesson-dots"><span className="done" /><span /><span /><span /></div>
-                  <strong className="path-link">Open unit <span>→</span></strong>
+                  <div className="lesson-dots"><span className={lessonComplete ? "done" : ""} /><span /><span /><span /></div>
+                  <strong className="path-link">{lessonComplete ? "Review unit" : lessonStarted ? "Continue unit" : "Start unit"} <span>→</span></strong>
                 </article>
                 <article className="path-card locked">
                   <div className="path-top"><span className="unit-number">02</span><span className="status-pill muted"><Icon name="lock" /> NEXT</span></div>
@@ -272,7 +308,7 @@ export default function Home() {
               <div className="sound-pair"><span>Č</span><i>or</i><span>Ć</span></div>
               <button className="secondary-button" onClick={() => beginLesson(2)}>Try a sound sample <span>→</span></button>
             </section>
-            <footer className="accuracy-note">Built around practical A1 skills • Serbian Latin first, Cyrillic always available</footer>
+            <footer className="accuracy-note">Built around practical A1 skills • Serbian Latin alphabet throughout</footer>
           </div>
         )}
 
@@ -284,17 +320,14 @@ export default function Home() {
                 <div className="progress-track"><span style={{ width: `${((step + 1) / lessonSteps.length) * 100}%` }} /></div>
                 <small>{step + 1} / {lessonSteps.length}</small>
               </div>
-              <button className="script-toggle" onClick={() => setShowCyrillic((value) => !value)} aria-pressed={showCyrillic}>
-                <span className={!showCyrillic ? "selected" : ""}>Latin</span>
-                <span className={showCyrillic ? "selected" : ""}>Ћир.</span>
-              </button>
+              <span className="alphabet-label">Serbian Latin</span>
             </div>
 
             <div className="lesson-stage">
               {step === 0 && (
                 <section className="lesson-card intro-step">
                   <span className="lesson-kicker">LESSON 1 • MEET & GREET</span>
-                  <div className="intro-symbol"><span>Z</span><span>З</span></div>
+                  <div className="intro-symbol"><span>Z</span><span>Ć</span></div>
                   <h1>Your first Serbian conversation</h1>
                   <p className="lead">By the end of this seven-minute lesson, you’ll know exactly what to say when you meet someone.</p>
                   <div className="goal-list">
@@ -302,7 +335,7 @@ export default function Home() {
                     <div><span><Icon name="check" /></span><p><strong>Say your name</strong><small>With a natural Serbian phrase</small></p></div>
                     <div><span><Icon name="sound" /></span><p><strong>Hear the difference</strong><small>Between c and ć</small></p></div>
                   </div>
-                  <div className="coach-note"><div className="mini-avatar">M</div><p><strong>A note from Milena</strong><span>Don’t aim for perfection. Listen, repeat, and keep moving—samo polako means “take it easy.”</span></p></div>
+                  <div className="coach-note"><div className="mini-avatar">T</div><p><strong>A note from the teacher</strong><span>Don’t aim for perfection. Listen, repeat, and keep moving—samo polako means “take it easy.”</span></p></div>
                   <button className="primary-button wide" onClick={() => goToStep(1)}>Start learning <span>→</span></button>
                 </section>
               )}
@@ -317,7 +350,7 @@ export default function Home() {
                       <article className="phrase-card" key={phrase.latin}>
                         <button className="sound-button" onClick={() => speak(phrase.latin)} aria-label={`Play ${phrase.latin}`}><Icon name="sound" /></button>
                         <div className="phrase-copy">
-                          <div className="serbian-line"><strong>{phrase.latin}</strong>{showCyrillic && <span>{phrase.cyrillic}</span>}</div>
+                          <div className="serbian-line"><strong>{phrase.latin}</strong></div>
                           <span className="translation">{phrase.english}</span>
                           <p>{phrase.note}</p>
                         </div>
@@ -367,7 +400,6 @@ export default function Home() {
                         <button key={option} className={`answer-option ${selectedClass}`} onClick={() => setAnswer(isCorrect ? "correct" : "wrong")}>
                           <span className="answer-letter">{String.fromCharCode(65 + index)}</span>
                           <strong>{option}</strong>
-                          {showCyrillic && <small>{["Ћао!", "Добар дан!", "Лаку ноћ!"][index]}</small>}
                           {answer !== "idle" && isCorrect && <Icon name="check" />}
                         </button>
                       );
@@ -393,7 +425,6 @@ export default function Home() {
                     {sentence.length === 0 && <span>Build your Serbian sentence here</span>}
                     {sentence.map((word) => <button key={word} onClick={() => toggleSentenceWord(word)}>{word}</button>)}
                   </div>
-                  {showCyrillic && sentence.length > 0 && <div className="cyrillic-preview">{sentence.map((word) => ({ Zovem: "Зовем", se: "се", Emma: "Ема" })[word]).join(" ")}</div>}
                   <div className="word-bank">
                     {["Emma", "se", "Zovem"].map((word) => (
                       <button key={word} disabled={sentence.includes(word)} onClick={() => toggleSentenceWord(word)}>{word}</button>
@@ -432,7 +463,6 @@ export default function Home() {
                       <button onClick={() => speak("Zdravo! Ja sam Nikola. Kako se zoveš?")} aria-label="Play dialogue"><Icon name="sound" /></button>
                       <strong>Zdravo! Ja sam Nikola.</strong>
                       <strong>Kako se zoveš?</strong>
-                      {showCyrillic && <small>Здраво! Ја сам Никола. Како се зовеш?</small>}
                       <span>Hello! I’m Nikola. What’s your name?</span>
                     </div>
                   </div>
@@ -466,10 +496,9 @@ export default function Home() {
                     <span>YOU CAN NOW SAY</span>
                     <button onClick={() => speak("Zdravo! Zovem se Emma. Drago mi je.")}><Icon name="sound" /></button>
                     <strong>“Zdravo! Zovem se Emma. Drago mi je.”</strong>
-                    {showCyrillic && <small>„Здраво! Зовем се Ема. Драго ми је.“</small>}
                   </div>
                   <button className="primary-button wide" onClick={() => setView("home")}>Back to your path <span>→</span></button>
-                  <button className="text-button centered" onClick={() => { setLessonComplete(false); window.localStorage.removeItem("samo-polako-lesson-1"); goToStep(0); }}>Restart lesson</button>
+                  <button className="text-button centered" onClick={() => { setLessonComplete(false); setLessonStarted(true); window.localStorage.removeItem(lessonCompleteKey); goToStep(0); }}>Restart lesson</button>
                 </section>
               )}
 
@@ -482,7 +511,7 @@ export default function Home() {
           <div className="page phrasebook-page">
             <div className="page-heading">
               <div><span className="eyebrow">QUICK REFERENCE</span><h1>Your phrasebook</h1><p>Useful Serbian you can reach for in real life.</p></div>
-              <button className="script-toggle" onClick={() => setShowCyrillic((value) => !value)} aria-pressed={showCyrillic}><span className={!showCyrillic ? "selected" : ""}>Latin</span><span className={showCyrillic ? "selected" : ""}>Ћир.</span></button>
+              <span className="alphabet-label">Serbian Latin</span>
             </div>
             <div className="phrasebook-toolbar">
               <label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search in English or Serbian…" /></label>
@@ -490,9 +519,9 @@ export default function Home() {
             </div>
             <section className="phrasebook-list">
               <header><span>SERBIAN</span><span>ENGLISH</span><span>LISTEN</span></header>
-              {filteredPhrases.map(([latin, cyrillic, english]) => (
+              {filteredPhrases.map(([latin, english]) => (
                 <article key={latin}>
-                  <div><strong>{latin}</strong>{showCyrillic && <small>{cyrillic}</small>}</div>
+                  <div><strong>{latin}</strong></div>
                   <p>{english}</p>
                   <button className="sound-button" onClick={() => speak(latin)} aria-label={`Play ${latin}`}><Icon name="sound" /></button>
                 </article>
@@ -507,6 +536,30 @@ export default function Home() {
           {navItems.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => item.id === "lesson" ? beginLesson(step) : setView(item.id)}><Icon name={item.icon} /><span>{item.label}</span></button>)}
         </nav>
       </main>
+
+      {namePromptOpen && (
+        <div className="welcome-overlay">
+          <section className="welcome-dialog" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+            <BrandMark />
+            <span className="eyebrow">DOBRO DOŠLA • WELCOME</span>
+            <h2 id="welcome-title">What should your Serbian course call you?</h2>
+            <p>Enter your first name or a nickname. It stays only in this browser and can be changed later.</p>
+            <form onSubmit={(event) => { event.preventDefault(); saveLearnerName(); }}>
+              <label htmlFor="learner-name">Your name</label>
+              <input
+                id="learner-name"
+                autoFocus
+                maxLength={30}
+                value={nameDraft}
+                onChange={(event) => setNameDraft(event.target.value)}
+                placeholder="e.g. Emma"
+                autoComplete="given-name"
+              />
+              <button className="primary-button" type="submit" disabled={!nameDraft.trim()}>Start learning <span>→</span></button>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

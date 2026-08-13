@@ -1,0 +1,78 @@
+{
+  "voice": "sr-Latn-RS-SophieNeural",
+  "language": "sr-Latn-RS",
+  "speechRate": 0.9,
+  "outputFormat": "audio-24khz-96kbitrate-mono-mp3",
+  "obsoleteFiles": ["voice-sample.mp3", "cao-pronunciation.mp3"],
+  "clips": [
+    {
+      "id": "zdravo",
+      "text": "Zdravo!",
+      "file": "zdravo.mp3"
+    },
+    {
+      "id": "dobar-dan",
+      "text": "Dobar dan!",
+      "file": "dobar-dan.mp3"
+    },
+    {
+      "id": "cao",
+      "text": "Ćao!",
+      "aliases": ["ćao"],
+      "file": "cao.mp3"
+    },
+    {
+      "id": "cena",
+      "text": "cena",
+      "file": "cena.mp3"
+    },
+    {
+      "id": "nikola-introduction",
+      "text": "Zdravo, ja sam Nikola. Kako se ti zoveš?",
+      "parts": [
+        { "text": "Zdravo,", "pauseAfterMs": 160 },
+        { "text": "ja sam Nikola.", "pauseAfterMs": 320 },
+        { "text": "Kako se ti zoveš?" }
+      ],
+      "file": "nikola-introduction.mp3"
+    },
+    {
+      "id": "emma-introduction",
+      "text": "Zdravo! Zovem se Emma. Drago mi je.",
+      "voice": "sr-Latn-RS-SophieNeural",
+      "file": "emma-introduction.mp3"
+    },
+    {
+      "id": "dobro-jutro",
+      "text": "Dobro jutro!",
+      "file": "dobro-jutro.mp3"
+    },
+    {
+      "id": "dobro-vece",
+      "text": "Dobro veče!",
+      "file": "dobro-vece.mp3"
+    },
+    {
+      "id": "kako-si",
+      "text": "Kako si?",
+      "speechRate": 1.0,
+      "file": "kako-si.mp3"
+    },
+    {
+      "id": "dobro-sam-hvala",
+      "text": "Dobro sam, hvala.",
+      "file": "dobro-sam-hvala.mp3"
+    },
+    {
+      "id": "zovem-se",
+      "text": "Zovem se…",
+      "synthesisText": "Zovem se.",
+      "file": "zovem-se.mp3"
+    },
+    {
+      "id": "drago-mi-je",
+      "text": "Drago mi je.",
+      "file": "drago-mi-je.mp3"
+    }
+  ]
+}

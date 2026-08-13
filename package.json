@@ -10,7 +10,9 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "tsc --noEmit && vite build"
+    "test": "tsc --noEmit && vite build",
+    "audio:generate": "node scripts/generate-serbian-audio.mjs",
+    "audio:list": "node scripts/generate-serbian-audio.mjs --dry-run"
   },
   "dependencies": {
     "react": "19.2.6",

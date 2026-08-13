@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { playSerbianAudio } from "../src/audio/playSerbianAudio";
 
 type View = "home" | "lesson" | "phrasebook";
 type AnswerState = "idle" | "correct" | "wrong";
@@ -49,16 +50,7 @@ const lessonStartedKey = "samo-polako-lesson-1-started";
 const lessonStepKey = "samo-polako-lesson-1-step";
 
 function speak(text: string) {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "sr-RS";
-  utterance.rate = 0.78;
-  const voice = window.speechSynthesis
-    .getVoices()
-    .find((candidate) => candidate.lang.toLowerCase().startsWith("sr"));
-  if (voice) utterance.voice = voice;
-  window.speechSynthesis.speak(utterance);
+  playSerbianAudio(text);
 }
 
 function BrandMark() {
@@ -378,7 +370,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="compare-sounds">
-                    <button onClick={() => speak("cao")}><span>C</span><div><strong>cao</strong><small>“whole” • like <b>ts</b> in cats</small></div><Icon name="sound" /></button>
+                    <button onClick={() => speak("cena")}><span>C</span><div><strong>cena</strong><small>“price” • like <b>ts</b> in cats</small></div><Icon name="sound" /></button>
                     <button onClick={() => speak("ćao")}><span>Ć</span><div><strong>ćao</strong><small>“hi” • a soft <b>ty</b> sound</small></div><Icon name="sound" /></button>
                   </div>
                   <p className="fine-print">English comparisons are only approximations. Listening and imitation will get you closer than spelling tricks.</p>
@@ -460,9 +452,9 @@ export default function Home() {
                   <div className="dialogue">
                     <div className="dialogue-avatar">N</div>
                     <div className="dialogue-bubble">
-                      <button onClick={() => speak("Zdravo! Ja sam Nikola. Kako se zoveš?")} aria-label="Play dialogue"><Icon name="sound" /></button>
-                      <strong>Zdravo! Ja sam Nikola.</strong>
-                      <strong>Kako se zoveš?</strong>
+                      <button onClick={() => speak("Zdravo, ja sam Nikola. Kako se ti zoveš?")} aria-label="Play dialogue"><Icon name="sound" /></button>
+                      <strong>Zdravo, ja sam Nikola.</strong>
+                      <strong>Kako se ti zoveš?</strong>
                       <span>Hello! I’m Nikola. What’s your name?</span>
                     </div>
                   </div>

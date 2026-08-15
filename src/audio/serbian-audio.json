@@ -1,5 +1,5 @@
 {
-  "voice": "sr-Latn-RS-SophieNeural",
+  "voice": "sr-Latn-RS-NicholasNeural",
   "language": "sr-Latn-RS",
   "speechRate": 0.9,
   "outputFormat": "audio-24khz-96kbitrate-mono-mp3",
@@ -73,6 +73,173 @@
       "id": "drago-mi-je",
       "text": "Drago mi je.",
       "file": "drago-mi-je.mp3"
+    },
+    {
+      "id": "odakle-si",
+      "text": "Odakle si?",
+      "file": "odakle-si.mp3"
+    },
+    {
+      "id": "ja-sam-iz-engleske",
+      "text": "Ja sam iz Engleske.",
+      "file": "ja-sam-iz-engleske.mp3"
+    },
+    {
+      "id": "ja-sam-iz-srbije",
+      "text": "Ja sam iz Srbije.",
+      "file": "ja-sam-iz-srbije.mp3"
+    },
+    {
+      "id": "a-ti",
+      "text": "A ti?",
+      "file": "a-ti.mp3"
+    },
+    {
+      "id": "ja-sam-iz-engleske-a-ti",
+      "text": "Ja sam iz Engleske. A ti?",
+      "parts": [
+        { "text": "Ja sam iz Engleske.", "pauseAfterMs": 250 },
+        { "text": "A ti?" }
+      ],
+      "file": "ja-sam-iz-engleske-a-ti.mp3"
+    },
+    {
+      "id": "hvala",
+      "text": "Hvala.",
+      "file": "hvala.mp3"
+    },
+    {
+      "id": "molim",
+      "text": "Molim.",
+      "file": "molim.mp3"
+    },
+    {
+      "id": "ne-razumem",
+      "text": "Ne razumem.",
+      "file": "ne-razumem.mp3"
+    },
+    {
+      "id": "sporije-molim",
+      "text": "Sporije, molim.",
+      "parts": [
+        { "text": "Sporije,", "pauseAfterMs": 160 },
+        { "text": "molim." }
+      ],
+      "file": "sporije-molim.mp3"
+    },
+    {
+      "id": "kako-se-ti-zoves",
+      "text": "Kako se ti zoveš?",
+      "file": "kako-se-ti-zoves.mp3"
+    },
+    {
+      "id": "ne-razumem-sporije-molim",
+      "text": "Ne razumem. Sporije, molim.",
+      "parts": [
+        { "text": "Ne razumem.", "pauseAfterMs": 300 },
+        { "text": "Sporije,", "pauseAfterMs": 160 },
+        { "text": "molim." }
+      ],
+      "file": "ne-razumem-sporije-molim.mp3"
+    },
+    {
+      "id": "ovo-je-knjiga",
+      "text": "Ovo je knjiga.",
+      "file": "ovo-je-knjiga.mp3"
+    },
+    {
+      "id": "ovo-je-sto",
+      "text": "Ovo je sto.",
+      "file": "ovo-je-sto.mp3"
+    },
+    {
+      "id": "ovo-je-pitanje",
+      "text": "Ovo je pitanje.",
+      "file": "ovo-je-pitanje.mp3"
+    },
+    {
+      "id": "jedan-sto-jedna-knjiga-jedno-pitanje",
+      "text": "Jedan sto, jedna knjiga, jedno pitanje.",
+      "parts": [
+        { "text": "Jedan sto,", "pauseAfterMs": 220 },
+        { "text": "jedna knjiga,", "pauseAfterMs": 220 },
+        { "text": "jedno pitanje." }
+      ],
+      "file": "jedan-sto-jedna-knjiga-jedno-pitanje.mp3"
+    },
+    {
+      "id": "sta-je-to",
+      "text": "Šta je to?",
+      "file": "sta-je-to.mp3"
+    },
+    {
+      "id": "ovo-je-jedna-knjiga",
+      "text": "Ovo je jedna knjiga.",
+      "file": "ovo-je-jedna-knjiga.mp3"
+    },
+    {
+      "id": "ovo-je-moja-porodica",
+      "text": "Ovo je moja porodica.",
+      "file": "ovo-je-moja-porodica.mp3"
+    },
+    {
+      "id": "ovo-je-moj-brat",
+      "text": "Ovo je moj brat.",
+      "file": "ovo-je-moj-brat.mp3"
+    },
+    {
+      "id": "ovo-je-moja-sestra",
+      "text": "Ovo je moja sestra.",
+      "file": "ovo-je-moja-sestra.mp3"
+    },
+    {
+      "id": "imam-brata",
+      "text": "Imam brata.",
+      "file": "imam-brata.mp3"
+    },
+    {
+      "id": "imas-li-brata",
+      "text": "Imaš li brata?",
+      "voice": "sr-Latn-RS-SophieNeural",
+      "file": "imas-li-brata.mp3"
+    },
+    {
+      "id": "da-imam-brata",
+      "text": "Da, imam brata.",
+      "parts": [
+        { "text": "Da,", "pauseAfterMs": 160 },
+        { "text": "imam brata." }
+      ],
+      "file": "da-imam-brata.mp3"
+    },
+    {
+      "id": "koliko-imas-godina",
+      "text": "Koliko imaš godina?",
+      "file": "koliko-imas-godina.mp3"
+    },
+    {
+      "id": "imam-dvadeset-pet-godina",
+      "text": "Imam dvadeset pet godina.",
+      "file": "imam-dvadeset-pet-godina.mp3"
+    },
+    {
+      "id": "moj-broj-je",
+      "text": "Moj broj je...",
+      "synthesisText": "Moj broj je.",
+      "file": "moj-broj-je.mp3"
+    },
+    {
+      "id": "nula-jedan-dva-tri-cetiri-pet",
+      "text": "Nula, jedan, dva, tri, četiri, pet.",
+      "parts": [
+        { "text": "Nula,", "pauseAfterMs": 160 },
+        { "text": "jedan,", "pauseAfterMs": 160 },
+        { "text": "dva,", "pauseAfterMs": 160 },
+        { "text": "tri,", "pauseAfterMs": 160 },
+        { "text": "četiri,", "pauseAfterMs": 160 },
+        { "text": "pet." }
+      ],
+      "file": "nula-jedan-dva-tri-cetiri-pet.mp3"
     }
   ]
 }

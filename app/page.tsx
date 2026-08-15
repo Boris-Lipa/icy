@@ -1,53 +1,84 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { foundationLessons, nextCourseStage, type FoundationLesson } from "../src/course/foundations";
 import { playSerbianAudio } from "../src/audio/playSerbianAudio";
 
 type View = "home" | "lesson" | "phrasebook";
 type AnswerState = "idle" | "correct" | "wrong";
 
-const lessonSteps = [
-  "Your goal",
-  "Three greetings",
-  "A sound to notice",
-  "Choose the phrase",
-  "Build a sentence",
-  "Mini conversation",
-];
-
-const phrases = [
-  {
-    latin: "Zdravo!",
-    english: "Hello!",
-    note: "Friendly and useful at any time of day.",
-  },
-  {
-    latin: "Dobar dan!",
-    english: "Good day!",
-    note: "A polite greeting from late morning to early evening.",
-  },
-  {
-    latin: "Ćao!",
-    english: "Hi! / Bye!",
-    note: "Casual. Use it with friends and people you know.",
-  },
-];
-
-const phrasebook = [
-  ["Zdravo!", "Hello!"],
-  ["Dobro jutro!", "Good morning!"],
-  ["Dobar dan!", "Good day!"],
-  ["Dobro veče!", "Good evening!"],
-  ["Kako si?", "How are you? (informal)"],
-  ["Dobro sam, hvala.", "I’m well, thank you."],
-  ["Zovem se…", "My name is…"],
-  ["Drago mi je.", "Nice to meet you."],
-];
-
 const learnerNameKey = "samo-polako-learner-name";
-const lessonCompleteKey = "samo-polako-lesson-1";
-const lessonStartedKey = "samo-polako-lesson-1-started";
-const lessonStepKey = "samo-polako-lesson-1-step";
+const completedLessonsKey = "samo-polako-completed-lessons";
+const startedLessonKey = "samo-polako-started-lesson";
+const lessonStepKey = "samo-polako-lesson-step";
+const legacyLessonCompleteKey = "samo-polako-lesson-1";
+
+const firstLesson: FoundationLesson = {
+  id: "lesson-1",
+  unit: 1,
+  duration: "7 MIN",
+  title: "Your first Serbian conversation",
+  pathTitle: "First conversations",
+  description: "Greetings, names, polite phrases, and the sounds that make Serbian feel readable.",
+  icon: "Ć",
+  color: "coral",
+  goals: [
+    { title: "Greet someone", detail: "Casually or politely" },
+    { title: "Say your name", detail: "With a natural Serbian phrase" },
+    { title: "Hear an important sound", detail: "Tell c and ć apart" },
+  ],
+  teacherNote:
+    "Don’t aim for perfection. Listen, repeat, and keep moving — samo polako means “take it easy.”",
+  phrases: [
+    { serbian: "Zdravo!", english: "Hello!", note: "Friendly and useful at any time of day." },
+    { serbian: "Dobar dan!", english: "Good day!", note: "A polite greeting from late morning to early evening." },
+    { serbian: "Ćao!", english: "Hi! / Bye!", note: "Casual. Use it with friends and people you know." },
+  ],
+  grammar: {
+    title: "WHY THIS WORKS",
+    focus: "Zovem se",
+    explanation:
+      "literally means “I call myself.” Serbian often leaves out ja (“I”) because the verb ending already tells us who is speaking.",
+  },
+  check: {
+    prompt: "It’s 2 p.m. You enter a bakery. What do you say?",
+    lead: "Choose the most natural polite greeting.",
+    options: ["Ćao!", "Dobar dan!", "Laku noć!"],
+    answer: "Dobar dan!",
+    explanation: "Dobar dan is the safe, polite choice during the day.",
+  },
+  builder: {
+    prompt: "How do you say “My name is Emma”?",
+    words: ["Emma.", "se", "Zovem"],
+    answer: "Zovem se Emma.",
+    explanation: "Start with Zovem, then add se and your name.",
+  },
+  dialogue: {
+    speaker: "Nikola",
+    avatar: "N",
+    line: "Zdravo, ja sam Nikola. Kako se ti zoveš?",
+    translation: "Hello, I’m Nikola. What’s your name?",
+    options: [
+      { serbian: "Dobro veče.", english: "Good evening." },
+      { serbian: "Zovem se Emma. Drago mi je.", english: "My name is Emma. Nice to meet you." },
+      { serbian: "Hvala, dobro sam.", english: "Thanks, I’m well." },
+    ],
+    answer: "Zovem se Emma. Drago mi je.",
+    feedback: "Perfect. You introduced yourself and added a natural “nice to meet you.”",
+  },
+  recap: "Zdravo! Zovem se Emma. Drago mi je.",
+  pronunciation: {
+    character: "Ć",
+    word: "Ćao!",
+    title: "Meet the soft ć sound",
+    description:
+      "Serbian spelling is pleasantly consistent: once you know a letter’s sound, you can read unfamiliar words aloud.",
+    comparison:
+      "It is close to the light “ty” sound many English speakers use in “tune.” English comparisons are only approximations, so let the recording be your guide.",
+  },
+};
+
+const courseLessons = [firstLesson, ...foundationLessons];
 
 function speak(text: string) {
   playSerbianAudio(text);
@@ -65,7 +96,7 @@ function Icon({ name }: { name: "home" | "book" | "chat" | "chart" | "sound" | "
   const icons = {
     home: "⌂",
     book: "▤",
-    chat: "◌",
+    chat: "○",
     chart: "↗",
     sound: "♪",
     check: "✓",
@@ -74,15 +105,26 @@ function Icon({ name }: { name: "home" | "book" | "chat" | "chart" | "sound" | "
   return <span className={`icon icon-${name}`} aria-hidden="true">{icons[name]}</span>;
 }
 
+function readCompletedLessons() {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(completedLessonsKey) ?? "[]");
+    if (Array.isArray(saved) && saved.every((value) => typeof value === "string")) return saved;
+  } catch {
+    // A malformed local value should not prevent the course from opening.
+  }
+  return [] as string[];
+}
+
 export default function Home() {
   const [view, setView] = useState<View>("home");
+  const [activeLessonId, setActiveLessonId] = useState(firstLesson.id);
   const [step, setStep] = useState(0);
   const [answer, setAnswer] = useState<AnswerState>("idle");
   const [sentence, setSentence] = useState<string[]>([]);
   const [sentenceChecked, setSentenceChecked] = useState<AnswerState>("idle");
   const [dialogueAnswer, setDialogueAnswer] = useState<AnswerState>("idle");
-  const [lessonComplete, setLessonComplete] = useState(false);
-  const [lessonStarted, setLessonStarted] = useState(false);
+  const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
+  const [startedLessonId, setStartedLessonId] = useState<string | null>(null);
   const [learnerName, setLearnerName] = useState("");
   const [nameDraft, setNameDraft] = useState("");
   const [namePromptOpen, setNamePromptOpen] = useState(false);
@@ -90,56 +132,91 @@ export default function Home() {
 
   useEffect(() => {
     const savedName = window.localStorage.getItem(learnerNameKey)?.trim() ?? "";
-    const completed = window.localStorage.getItem(lessonCompleteKey) === "complete";
+    const completed = readCompletedLessons();
+    const legacyComplete = window.localStorage.getItem(legacyLessonCompleteKey) === "complete";
+    const migratedCompleted = legacyComplete && !completed.includes(firstLesson.id) ? [firstLesson.id, ...completed] : completed;
+    const savedLesson = window.localStorage.getItem(startedLessonKey);
     const savedStep = Number(window.localStorage.getItem(lessonStepKey));
 
     setLearnerName(savedName);
     setNameDraft(savedName);
     setNamePromptOpen(!savedName);
-    setLessonComplete(completed);
-    setLessonStarted(completed || window.localStorage.getItem(lessonStartedKey) === "true");
-    if (Number.isInteger(savedStep)) setStep(Math.max(0, Math.min(savedStep, lessonSteps.length - 1)));
+    setCompletedLessonIds(migratedCompleted);
+    setStartedLessonId(courseLessons.some((lesson) => lesson.id === savedLesson) ? savedLesson : null);
+    if (courseLessons.some((lesson) => lesson.id === savedLesson)) setActiveLessonId(savedLesson as string);
+    if (Number.isInteger(savedStep)) setStep(Math.max(0, Math.min(savedStep, 5)));
+
+    if (migratedCompleted !== completed) {
+      window.localStorage.setItem(completedLessonsKey, JSON.stringify(migratedCompleted));
+    }
   }, []);
+
+  const activeLesson = courseLessons.find((lesson) => lesson.id === activeLessonId) ?? firstLesson;
+  const activeLessonComplete = completedLessonIds.includes(activeLesson.id);
+  const activeLessonStarted = startedLessonId === activeLesson.id;
+  const completedCount = courseLessons.filter((lesson) => completedLessonIds.includes(lesson.id)).length;
+  const courseProgress = Math.round((completedCount / courseLessons.length) * 100);
+  const nextLesson = courseLessons.find((lesson) => !completedLessonIds.includes(lesson.id)) ?? firstLesson;
 
   const filteredPhrases = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return phrasebook;
-    return phrasebook.filter((item) => item.some((value) => value.toLowerCase().includes(needle)));
+    const phrases = courseLessons.flatMap((lesson) => lesson.phrases.map((phrase) => ({ ...phrase, unit: lesson.unit })));
+    if (!needle) return phrases;
+    return phrases.filter((phrase) => `${phrase.serbian} ${phrase.english}`.toLowerCase().includes(needle));
   }, [query]);
 
-  function beginLesson(startStep = 0) {
-    window.localStorage.setItem(lessonStartedKey, "true");
-    window.localStorage.setItem(lessonStepKey, String(startStep));
-    setLessonStarted(true);
-    setStep(startStep);
+  function resetStepState() {
     setAnswer("idle");
     setSentence([]);
     setSentenceChecked("idle");
     setDialogueAnswer("idle");
+  }
+
+  function canOpenLesson(lesson: FoundationLesson) {
+    const index = courseLessons.findIndex((candidate) => candidate.id === lesson.id);
+    return index === 0 || completedLessonIds.includes(courseLessons[index - 1].id);
+  }
+
+  function beginLesson(lesson: FoundationLesson, startStep = 0) {
+    if (!canOpenLesson(lesson)) return;
+    const safeStep = Math.max(0, Math.min(startStep, 5));
+    window.localStorage.setItem(startedLessonKey, lesson.id);
+    window.localStorage.setItem(lessonStepKey, String(safeStep));
+    setStartedLessonId(lesson.id);
+    setActiveLessonId(lesson.id);
+    setStep(safeStep);
+    resetStepState();
     setView("lesson");
   }
 
-  function completeLesson() {
-    window.localStorage.setItem(lessonCompleteKey, "complete");
-    window.localStorage.setItem(lessonStartedKey, "true");
-    setLessonComplete(true);
-    setLessonStarted(true);
-  }
-
   function goToStep(nextStep: number) {
-    const safeStep = Math.max(0, Math.min(nextStep, lessonSteps.length - 1));
+    const safeStep = Math.max(0, Math.min(nextStep, 5));
     window.localStorage.setItem(lessonStepKey, String(safeStep));
     setStep(safeStep);
-    setAnswer("idle");
-    setSentenceChecked("idle");
-    setDialogueAnswer("idle");
+    resetStepState();
+  }
+
+  function completeLesson() {
+    const nextCompleted = completedLessonIds.includes(activeLesson.id)
+      ? completedLessonIds
+      : [...completedLessonIds, activeLesson.id];
+    window.localStorage.setItem(completedLessonsKey, JSON.stringify(nextCompleted));
+    if (activeLesson.id === firstLesson.id) window.localStorage.setItem(legacyLessonCompleteKey, "complete");
+    setCompletedLessonIds(nextCompleted);
+    setStartedLessonId(activeLesson.id);
+  }
+
+  function restartLesson() {
+    const nextCompleted = completedLessonIds.filter((lessonId) => lessonId !== activeLesson.id);
+    window.localStorage.setItem(completedLessonsKey, JSON.stringify(nextCompleted));
+    if (activeLesson.id === firstLesson.id) window.localStorage.removeItem(legacyLessonCompleteKey);
+    setCompletedLessonIds(nextCompleted);
+    beginLesson(activeLesson, 0);
   }
 
   function toggleSentenceWord(word: string) {
     setSentenceChecked("idle");
-    setSentence((current) =>
-      current.includes(word) ? current.filter((item) => item !== word) : [...current, word],
-    );
+    setSentence((current) => (current.includes(word) ? current.filter((item) => item !== word) : [...current, word]));
   }
 
   function saveLearnerName() {
@@ -151,11 +228,12 @@ export default function Home() {
     setNamePromptOpen(false);
   }
 
-  const lessonProgress = lessonComplete ? 100 : lessonStarted ? ((step + 1) / lessonSteps.length) * 100 : 0;
-  const courseProgress = lessonComplete ? 8 : 0;
-  const lessonAction = lessonComplete ? "Review lesson" : lessonStarted ? "Continue lesson" : "Start lesson";
   const displayName = learnerName || "there";
   const avatarLetter = learnerName.charAt(0).toUpperCase() || "S";
+  const nextLessonStarted = startedLessonId === nextLesson.id;
+  const nextLessonComplete = completedLessonIds.includes(nextLesson.id);
+  const homeLessonProgress = nextLessonComplete ? 100 : nextLessonStarted ? ((step + 1) / 6) * 100 : 0;
+  const homeLessonAction = nextLessonComplete ? "Review lesson" : nextLessonStarted ? "Continue lesson" : "Start lesson";
 
   const navItems: { id: View; label: string; icon: "home" | "book" | "chat" }[] = [
     { id: "home", label: "Home", icon: "home" },
@@ -163,144 +241,103 @@ export default function Home() {
     { id: "phrasebook", label: "Phrasebook", icon: "chat" },
   ];
 
+  function handleNavigation(item: View) {
+    if (item === "lesson") beginLesson(nextLesson, nextLessonStarted ? step : 0);
+    else setView(item);
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <button className="brand" onClick={() => setView("home")} aria-label="Samo polako home">
           <BrandMark />
-          <span className="brand-copy">
-            <strong>Samo polako</strong>
-            <small>Serbian, step by step</small>
-          </span>
+          <span className="brand-copy"><strong>Samo polako</strong><small>Serbian, step by step</small></span>
         </button>
 
         <nav className="main-nav" aria-label="Main navigation">
           {navItems.map((item) => (
-            <button
-              key={item.id}
-              className={view === item.id ? "nav-item active" : "nav-item"}
-              onClick={() => (item.id === "lesson" ? beginLesson(lessonComplete ? 0 : step) : setView(item.id))}
-            >
+            <button key={item.id} className={view === item.id ? "nav-item active" : "nav-item"} onClick={() => handleNavigation(item.id)}>
               <Icon name={item.icon} />
               {item.label}
-              {item.id === "lesson" && <span className="nav-count">1</span>}
+              {item.id === "lesson" && <span className="nav-count">{courseLessons.length}</span>}
             </button>
           ))}
-          <button className="nav-item" onClick={() => setView("home")}>
-            <Icon name="chart" />
-            Progress
-          </button>
+          <button className="nav-item" onClick={() => setView("home")}><Icon name="chart" />Progress</button>
         </nav>
 
         <div className="sidebar-course">
-          <div className="course-label">
-            <span>Current course</span>
-            <span>{courseProgress}%</span>
-          </div>
+          <div className="course-label"><span>Current course</span><span>{courseProgress}%</span></div>
           <strong>Serbian foundations</strong>
-          <div className="mini-progress" aria-label={`${courseProgress}% complete`}>
-            <span style={{ width: `${courseProgress}%` }} />
-          </div>
+          <div className="mini-progress" aria-label={`${courseProgress}% complete`}><span style={{ width: `${courseProgress}%` }} /></div>
           <small>A1 • Absolute beginner</small>
         </div>
 
         <button className="learner-card" onClick={() => setNamePromptOpen(true)} aria-label="Change learner name">
           <div className="avatar">{avatarLetter}</div>
-          <div>
-            <strong>Ćao, {displayName}!</strong>
-            <small>Day 1 of your journey</small>
-          </div>
+          <div><strong>Ćao, {displayName}!</strong><small>Day 1 of your journey</small></div>
           <span className="streak" title="Learning streak">1</span>
         </button>
       </aside>
 
       <main className="main-content">
         <header className="mobile-header">
-          <button className="brand compact" onClick={() => setView("home")} aria-label="Samo polako home">
-            <BrandMark />
-            <strong>Samo polako</strong>
-          </button>
+          <button className="brand compact" onClick={() => setView("home")} aria-label="Samo polako home"><BrandMark /><strong>Samo polako</strong></button>
           <span className="streak">1</span>
         </header>
 
         {view === "home" && (
           <div className="page home-page">
             <div className="page-heading home-heading">
-              <div>
-                <span className="eyebrow">DANAS • TODAY</span>
-                <h1>Let’s get you speaking.</h1>
-                <p>One useful conversation at a time—clear, practical, and never rushed.</p>
-              </div>
-              <div className="day-streak">
-                <span>1</span>
-                <div><strong>day streak</strong><small>A great start</small></div>
-              </div>
+              <div><span className="eyebrow">DANAS • TODAY</span><h1>Let’s get you speaking.</h1><p>One useful conversation at a time — clear, practical, and never rushed.</p></div>
+              <div className="day-streak"><span>1</span><div><strong>day streak</strong><small>A great start</small></div></div>
             </div>
 
             <section className="continue-card">
-              <div className="continue-art" aria-hidden="true">
-                <div className="sun-shape" />
-                <span className="speech-chip first">Zdravo!</span>
-                <span className="speech-chip second">Hello!</span>
-                <div className="art-letter">Ž</div>
-              </div>
+              <div className="continue-art" aria-hidden="true"><div className="sun-shape" /><span className="speech-chip first">Zdravo!</span><span className="speech-chip second">Hello!</span><div className="art-letter">Ž</div></div>
               <div className="continue-copy">
-                <div className="lesson-meta"><span>UNIT 1</span><span>7 MIN</span></div>
-                <h2>{lessonComplete ? "Ready for a quick review?" : "Your first Serbian conversation"}</h2>
-                <p>Learn to greet someone, introduce yourself, and hear one of Serbian’s most important sounds.</p>
-                <div className="progress-row">
-                  <div className="progress-track"><span style={{ width: `${lessonProgress}%` }} /></div>
-                  <small>{lessonComplete ? "Lesson complete" : lessonStarted ? `${step + 1} of ${lessonSteps.length} steps` : "Not started"}</small>
-                </div>
-                <button className="primary-button" onClick={() => beginLesson(lessonComplete ? 0 : step)}>
-                  {lessonAction}<span>→</span>
-                </button>
+                <div className="lesson-meta"><span>UNIT {nextLesson.unit}</span><span>{nextLesson.duration}</span></div>
+                <h2>{nextLessonComplete ? "Your foundations are ready to review." : nextLesson.title}</h2>
+                <p>{nextLesson.description}</p>
+                <div className="progress-row"><div className="progress-track"><span style={{ width: `${homeLessonProgress}%` }} /></div><small>{nextLessonComplete ? "Lesson complete" : nextLessonStarted ? `${step + 1} of 6 steps` : "Not started"}</small></div>
+                <button className="primary-button" onClick={() => beginLesson(nextLesson, nextLessonStarted ? step : 0)}>{homeLessonAction}<span>→</span></button>
               </div>
             </section>
 
             <section className="section-block">
-              <div className="section-title">
-                <div><span className="eyebrow">YOUR PATH</span><h2>From first words to real conversations</h2></div>
-                <span className="path-duration">12 bite-sized lessons</span>
-              </div>
+              <div className="section-title"><div><span className="eyebrow">YOUR PATH</span><h2>From first words to real conversations</h2></div><span className="path-duration">6 complete foundation lessons</span></div>
               <div className="learning-path">
-                <article className="path-card current" onClick={() => beginLesson(lessonComplete ? 0 : step)}>
-                  <div className="path-top"><span className="unit-number">01</span><span className="status-pill">{lessonComplete ? "COMPLETE" : lessonStarted ? "IN PROGRESS" : "READY"}</span></div>
-                  <div className="path-icon coral"><Icon name="chat" /></div>
-                  <h3>First conversations</h3>
-                  <p>Greetings, names, polite phrases, and the sounds that make Serbian feel readable.</p>
-                  <div className="lesson-dots"><span className={lessonComplete ? "done" : ""} /><span /><span /><span /></div>
-                  <strong className="path-link">{lessonComplete ? "Review unit" : lessonStarted ? "Continue unit" : "Start unit"} <span>→</span></strong>
-                </article>
-                <article className="path-card locked">
-                  <div className="path-top"><span className="unit-number">02</span><span className="status-pill muted"><Icon name="lock" /> NEXT</span></div>
-                  <div className="path-icon gold">A</div>
-                  <h3>People & everyday life</h3>
-                  <p>Talk about family, where you live, what you like, and the things around you.</p>
-                  <div className="lesson-dots"><span /><span /><span /><span /></div>
-                  <strong className="path-link muted-text">Complete Unit 1 to unlock</strong>
-                </article>
-                <article className="path-card locked">
-                  <div className="path-top"><span className="unit-number">03</span><span className="status-pill muted"><Icon name="lock" /> LATER</span></div>
-                  <div className="path-icon blue">?</div>
-                  <h3>Build useful sentences</h3>
-                  <p>Ask questions, use present-tense verbs, and get comfortable with word endings.</p>
-                  <div className="lesson-dots"><span /><span /><span /><span /></div>
-                  <strong className="path-link muted-text">Locked for now</strong>
-                </article>
+                {courseLessons.map((lesson) => {
+                  const complete = completedLessonIds.includes(lesson.id);
+                  const started = startedLessonId === lesson.id;
+                  const unlocked = canOpenLesson(lesson);
+                  const status = complete ? "COMPLETE" : started ? "IN PROGRESS" : unlocked ? "READY" : "NEXT";
+                  return (
+                    <article key={lesson.id} className={`path-card ${unlocked ? "current" : "locked"}`} onClick={() => unlocked && beginLesson(lesson, started ? step : 0)}>
+                      <div className="path-top"><span className="unit-number">{String(lesson.unit).padStart(2, "0")}</span><span className={unlocked ? "status-pill" : "status-pill muted"}>{!unlocked && <Icon name="lock" />}{status}</span></div>
+                      <div className={`path-icon ${lesson.color}`}>{lesson.icon}</div>
+                      <h3>{lesson.pathTitle}</h3>
+                      <p>{lesson.description}</p>
+                      <div className="lesson-dots"><span className={complete || started ? "done" : ""} /><span className={complete ? "done" : ""} /><span className={complete ? "done" : ""} /><span className={complete ? "done" : ""} /></div>
+                      <strong className={unlocked ? "path-link" : "path-link muted-text"}>{complete ? "Review unit" : started ? "Continue unit" : unlocked ? "Start unit" : "Complete the previous unit"}<span>{unlocked && "→"}</span></strong>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="course-roadmap" aria-labelledby="next-stage-title">
+              <div><span className="eyebrow">NEXT STAGE</span><h2 id="next-stage-title">Where this foundation leads</h2><p>These are deliberately planned next, so the course keeps building on what has been practised instead of jumping between random topics.</p></div>
+              <div className="roadmap-list">
+                {nextCourseStage.map((lesson) => <div key={lesson.unit}><span>{String(lesson.unit).padStart(2, "0")}</span><p><strong>{lesson.title}</strong><small>{lesson.description}</small></p></div>)}
               </div>
             </section>
 
             <section className="daily-practice">
-              <div>
-                <span className="eyebrow">A LITTLE EXTRA</span>
-                <h2>Train your Serbian ear</h2>
-                <p>Five sound pairs English speakers often need a moment to hear.</p>
-              </div>
+              <div><span className="eyebrow">A LITTLE EXTRA</span><h2>Train your Serbian ear</h2><p>Two letters English speakers often need a moment to hear.</p></div>
               <div className="sound-pair"><span>Č</span><i>or</i><span>Ć</span></div>
-              <button className="secondary-button" onClick={() => beginLesson(2)}>Try a sound sample <span>→</span></button>
+              <button className="secondary-button" onClick={() => beginLesson(firstLesson, 2)}>Try a sound sample <span>→</span></button>
             </section>
-            <footer className="accuracy-note">Built around practical A1 skills • Serbian Latin alphabet throughout</footer>
+            <footer className="accuracy-note">Practical A1 skills • Serbian Latin alphabet throughout</footer>
           </div>
         )}
 
@@ -308,26 +345,21 @@ export default function Home() {
           <div className="lesson-layout">
             <div className="lesson-topbar">
               <button className="text-button" onClick={() => setView("home")}><span>←</span> Exit lesson</button>
-              <div className="lesson-progress" aria-label={`Step ${step + 1} of ${lessonSteps.length}`}>
-                <div className="progress-track"><span style={{ width: `${((step + 1) / lessonSteps.length) * 100}%` }} /></div>
-                <small>{step + 1} / {lessonSteps.length}</small>
-              </div>
+              <div className="lesson-progress" aria-label={`Step ${step + 1} of 6`}><div className="progress-track"><span style={{ width: `${((step + 1) / 6) * 100}%` }} /></div><small>{step + 1} / 6</small></div>
               <span className="alphabet-label">Serbian Latin</span>
             </div>
 
             <div className="lesson-stage">
               {step === 0 && (
                 <section className="lesson-card intro-step">
-                  <span className="lesson-kicker">LESSON 1 • MEET & GREET</span>
-                  <div className="intro-symbol"><span>Z</span><span>Ć</span></div>
-                  <h1>Your first Serbian conversation</h1>
-                  <p className="lead">By the end of this seven-minute lesson, you’ll know exactly what to say when you meet someone.</p>
+                  <span className="lesson-kicker">LESSON {activeLesson.unit} • {activeLesson.pathTitle.toUpperCase()}</span>
+                  <div className="intro-symbol"><span>{activeLesson.icon.slice(0, 1)}</span><span>{activeLesson.unit}</span></div>
+                  <h1>{activeLesson.title}</h1>
+                  <p className="lead">By the end of this {activeLesson.duration.toLowerCase()} lesson, you will be able to use these phrases in a small, real exchange.</p>
                   <div className="goal-list">
-                    <div><span><Icon name="check" /></span><p><strong>Greet someone</strong><small>Casually or politely</small></p></div>
-                    <div><span><Icon name="check" /></span><p><strong>Say your name</strong><small>With a natural Serbian phrase</small></p></div>
-                    <div><span><Icon name="sound" /></span><p><strong>Hear the difference</strong><small>Between c and ć</small></p></div>
+                    {activeLesson.goals.map((goal, index) => <div key={goal.title}><span><Icon name={index === 2 ? "sound" : "check"} /></span><p><strong>{goal.title}</strong><small>{goal.detail}</small></p></div>)}
                   </div>
-                  <div className="coach-note"><div className="mini-avatar">T</div><p><strong>A note from the teacher</strong><span>Don’t aim for perfection. Listen, repeat, and keep moving—samo polako means “take it easy.”</span></p></div>
+                  <div className="coach-note"><div className="mini-avatar">T</div><p><strong>A note from the teacher</strong><span>{activeLesson.teacherNote}</span></p></div>
                   <button className="primary-button wide" onClick={() => goToStep(1)}>Start learning <span>→</span></button>
                 </section>
               )}
@@ -335,223 +367,122 @@ export default function Home() {
               {step === 1 && (
                 <section className="lesson-card phrase-step">
                   <span className="lesson-kicker">LISTEN & REPEAT</span>
-                  <h1>Three ways to say hello</h1>
-                  <p className="lead">Tap the sound button, then say each phrase aloud.</p>
+                  <h1>Useful phrases first</h1>
+                  <p className="lead">Tap each sound button, listen once, then repeat without trying to sound perfect.</p>
                   <div className="phrase-list">
-                    {phrases.map((phrase, index) => (
-                      <article className="phrase-card" key={phrase.latin}>
-                        <button className="sound-button" onClick={() => speak(phrase.latin)} aria-label={`Play ${phrase.latin}`}><Icon name="sound" /></button>
-                        <div className="phrase-copy">
-                          <div className="serbian-line"><strong>{phrase.latin}</strong></div>
-                          <span className="translation">{phrase.english}</span>
-                          <p>{phrase.note}</p>
-                        </div>
-                        <span className="phrase-number">0{index + 1}</span>
+                    {activeLesson.phrases.map((phrase, index) => (
+                      <article className="phrase-card" key={phrase.serbian}>
+                        <button className="sound-button" onClick={() => speak(phrase.serbian)} aria-label={`Play ${phrase.serbian}`}><Icon name="sound" /></button>
+                        <div className="phrase-copy"><div className="serbian-line"><strong>{phrase.serbian}</strong></div><span className="translation">{phrase.english}</span><p>{phrase.note}</p></div>
+                        <span className="phrase-number">{String(index + 1).padStart(2, "0")}</span>
                       </article>
                     ))}
                   </div>
-                  <div className="culture-tip"><span>GOOD TO KNOW</span><p><strong>Ćao</strong> is borrowed from Italian <em>ciao</em>. In Serbian, it works for both “hi” and “bye.”</p></div>
                   <button className="primary-button wide" onClick={() => goToStep(2)}>Continue <span>→</span></button>
                 </section>
               )}
 
-              {step === 2 && (
+              {step === 2 && activeLesson.pronunciation && (
                 <section className="lesson-card sound-step">
                   <span className="lesson-kicker">PRONUNCIATION</span>
-                  <h1>Meet the soft <em>ć</em> sound</h1>
-                  <p className="lead">Serbian spelling is pleasantly consistent: once you know a letter’s sound, you can read unfamiliar words aloud.</p>
+                  <h1>{activeLesson.pronunciation.title}</h1>
+                  <p className="lead">{activeLesson.pronunciation.description}</p>
                   <div className="sound-focus">
-                    <button className="giant-sound" onClick={() => speak("ćao")} aria-label="Play ćao"><span>Ć</span><small>tap to hear</small></button>
-                    <div className="sound-explanation">
-                      <span className="eyebrow">A GENTLE TIP</span>
-                      <h2>Like “t” and “y” meeting</h2>
-                      <p>Start with the <strong>t</strong> in “tune” as many British English speakers say it. Keep your tongue relaxed and make the sound light.</p>
-                      <div className="mouth-cue"><span>t</span><i>+</i><span>y</span><i>≈</i><strong>ć</strong></div>
-                    </div>
+                    <button className="giant-sound" onClick={() => speak(activeLesson.pronunciation?.word ?? "Ćao!")} aria-label={`Play ${activeLesson.pronunciation.word}`}><span>{activeLesson.pronunciation.character}</span><small>tap to hear</small></button>
+                    <div className="sound-explanation"><span className="eyebrow">A GENTLE TIP</span><h2>Keep it light</h2><p>{activeLesson.pronunciation.comparison}</p><div className="mouth-cue"><span>t</span><i>+</i><span>y</span><i>≈</i><strong>ć</strong></div></div>
                   </div>
                   <div className="compare-sounds">
                     <button onClick={() => speak("cena")}><span>C</span><div><strong>cena</strong><small>“price” • like <b>ts</b> in cats</small></div><Icon name="sound" /></button>
-                    <button onClick={() => speak("ćao")}><span>Ć</span><div><strong>ćao</strong><small>“hi” • a soft <b>ty</b> sound</small></div><Icon name="sound" /></button>
+                    <button onClick={() => speak("Ćao!")}><span>Ć</span><div><strong>Ćao</strong><small>“hi” • a soft <b>ty</b> sound</small></div><Icon name="sound" /></button>
                   </div>
-                  <p className="fine-print">English comparisons are only approximations. Listening and imitation will get you closer than spelling tricks.</p>
                   <button className="primary-button wide" onClick={() => goToStep(3)}>Got it <span>→</span></button>
+                </section>
+              )}
+
+              {step === 2 && !activeLesson.pronunciation && (
+                <section className="lesson-card grammar-step">
+                  <span className="lesson-kicker">MAKE THE PATTERN YOURS</span>
+                  <h1>{activeLesson.grammar.title}</h1>
+                  <p className="lead">A small explanation now makes the phrases easier to reuse later.</p>
+                  <div className="grammar-pattern"><strong>{activeLesson.grammar.focus}</strong><span>{activeLesson.grammar.explanation}</span></div>
+                  {activeLesson.numberReference && <div className="number-grid" aria-label="Serbian numbers zero to ten">{activeLesson.numberReference.map((item) => <div key={item.number}><strong>{item.number}</strong><span>{item.word}</span></div>)}</div>}
+                  <div className="grammar-note"><span>KEEP IT SIMPLE</span><p>Say the phrases as complete pieces first. You will meet the individual endings again in later lessons, with more context and practice.</p></div>
+                  <button className="primary-button wide" onClick={() => goToStep(3)}>Continue <span>→</span></button>
                 </section>
               )}
 
               {step === 3 && (
                 <section className="lesson-card question-step">
-                  <span className="lesson-kicker">QUICK CHECK</span>
-                  <div className="question-count">1 of 3</div>
-                  <h1>It’s 2 p.m. You enter a bakery. What do you say?</h1>
-                  <p className="lead">Choose the most natural polite greeting.</p>
+                  <span className="lesson-kicker">QUICK CHECK</span><div className="question-count">1 of 3</div>
+                  <h1>{activeLesson.check.prompt}</h1><p className="lead">{activeLesson.check.lead}</p>
                   <div className="answer-grid">
-                    {["Ćao!", "Dobar dan!", "Laku noć!"].map((option, index) => {
-                      const isCorrect = option === "Dobar dan!";
-                      const selectedClass = answer !== "idle" && isCorrect ? "correct" : answer === "wrong" && index === 0 ? "wrong" : "";
-                      return (
-                        <button key={option} className={`answer-option ${selectedClass}`} onClick={() => setAnswer(isCorrect ? "correct" : "wrong")}>
-                          <span className="answer-letter">{String.fromCharCode(65 + index)}</span>
-                          <strong>{option}</strong>
-                          {answer !== "idle" && isCorrect && <Icon name="check" />}
-                        </button>
-                      );
+                    {activeLesson.check.options.map((option, index) => {
+                      const isCorrect = option === activeLesson.check.answer;
+                      const selectedClass = answer !== "idle" && isCorrect ? "correct" : answer === "wrong" && !isCorrect ? "wrong" : "";
+                      return <button key={option} className={`answer-option ${selectedClass}`} onClick={() => setAnswer(isCorrect ? "correct" : "wrong")}><span className="answer-letter">{String.fromCharCode(65 + index)}</span><strong>{option}</strong>{answer !== "idle" && isCorrect && <Icon name="check" />}</button>;
                     })}
                   </div>
-                  {answer !== "idle" && (
-                    <div className={`feedback ${answer}`}>
-                      <strong>{answer === "correct" ? "Odlično! Excellent." : "Almost—save Ćao for a casual hello."}</strong>
-                      <p><em>Dobar dan</em> is the safe, polite choice during the day.</p>
-                    </div>
-                  )}
+                  {answer !== "idle" && <div className={`feedback ${answer}`}><strong>{answer === "correct" ? "Odlično! Excellent." : "Almost — take another look at the phrase."}</strong><p>{activeLesson.check.explanation}</p></div>}
                   <button className="primary-button wide" disabled={answer !== "correct"} onClick={() => goToStep(4)}>Continue <span>→</span></button>
                 </section>
               )}
 
               {step === 4 && (
                 <section className="lesson-card sentence-step">
-                  <span className="lesson-kicker">BUILD THE SENTENCE</span>
-                  <div className="question-count">2 of 3</div>
-                  <h1>How do you say “My name is Emma”?</h1>
-                  <p className="lead">Tap the words in the right order.</p>
-                  <div className={`sentence-dropzone ${sentenceChecked}`}>
-                    {sentence.length === 0 && <span>Build your Serbian sentence here</span>}
-                    {sentence.map((word) => <button key={word} onClick={() => toggleSentenceWord(word)}>{word}</button>)}
-                  </div>
-                  <div className="word-bank">
-                    {["Emma", "se", "Zovem"].map((word) => (
-                      <button key={word} disabled={sentence.includes(word)} onClick={() => toggleSentenceWord(word)}>{word}</button>
-                    ))}
-                  </div>
-                  <div className="grammar-note"><span>WHY THIS WORKS</span><p><strong>Zovem se</strong> literally means “I call myself.” Serbian often leaves out <em>ja</em> (“I”) because the verb ending already tells us who is speaking.</p></div>
-                  {sentenceChecked !== "idle" && (
-                    <div className={`feedback ${sentenceChecked}`}>
-                      <strong>{sentenceChecked === "correct" ? "Tako je! That’s right." : "Not quite. Start with Zovem, then se."}</strong>
-                    </div>
-                  )}
-                  <button
-                    className="primary-button wide"
-                    disabled={sentence.length !== 3}
-                    onClick={() => {
-                      if (sentence.join(" ") === "Zovem se Emma") {
-                        if (sentenceChecked === "correct") goToStep(5);
-                        else setSentenceChecked("correct");
-                      } else setSentenceChecked("wrong");
-                    }}
-                  >
-                    {sentenceChecked === "correct" ? "Continue" : "Check answer"}<span>→</span>
-                  </button>
+                  <span className="lesson-kicker">BUILD THE SENTENCE</span><div className="question-count">2 of 3</div>
+                  <h1>{activeLesson.builder.prompt}</h1><p className="lead">Tap the words in the order you would say them.</p>
+                  <div className={`sentence-dropzone ${sentenceChecked}`}>{sentence.length === 0 && <span>Build your Serbian sentence here</span>}{sentence.map((word) => <button key={word} onClick={() => toggleSentenceWord(word)}>{word}</button>)}</div>
+                  <div className="word-bank">{activeLesson.builder.words.map((word) => <button key={word} disabled={sentence.includes(word)} onClick={() => toggleSentenceWord(word)}>{word}</button>)}</div>
+                  <div className="grammar-note"><span>{activeLesson.grammar.title}</span><p><strong>{activeLesson.grammar.focus}</strong> {activeLesson.builder.explanation}</p></div>
+                  {sentenceChecked !== "idle" && <div className={`feedback ${sentenceChecked}`}><strong>{sentenceChecked === "correct" ? "Tako je! That’s right." : "Not quite — rearrange the words and try again."}</strong></div>}
+                  <button className="primary-button wide" disabled={sentence.length !== activeLesson.builder.words.length} onClick={() => { if (sentence.join(" ") === activeLesson.builder.answer) { if (sentenceChecked === "correct") goToStep(5); else setSentenceChecked("correct"); } else setSentenceChecked("wrong"); }}>{sentenceChecked === "correct" ? "Continue" : "Check answer"}<span>→</span></button>
                 </section>
               )}
 
-              {step === 5 && !lessonComplete && (
+              {step === 5 && !activeLessonComplete && (
                 <section className="lesson-card dialogue-step">
-                  <span className="lesson-kicker">PUT IT TOGETHER</span>
-                  <div className="question-count">3 of 3</div>
-                  <h1>Your first mini conversation</h1>
-                  <p className="lead">Nikola has just introduced himself. Choose your reply.</p>
-                  <div className="dialogue">
-                    <div className="dialogue-avatar">N</div>
-                    <div className="dialogue-bubble">
-                      <button onClick={() => speak("Zdravo, ja sam Nikola. Kako se ti zoveš?")} aria-label="Play dialogue"><Icon name="sound" /></button>
-                      <strong>Zdravo, ja sam Nikola.</strong>
-                      <strong>Kako se ti zoveš?</strong>
-                      <span>Hello! I’m Nikola. What’s your name?</span>
-                    </div>
-                  </div>
+                  <span className="lesson-kicker">PUT IT TOGETHER</span><div className="question-count">3 of 3</div>
+                  <h1>Use it in a short conversation</h1><p className="lead">{activeLesson.dialogue.speaker} says the line below. Choose the response that fits.</p>
+                  <div className="dialogue"><div className="dialogue-avatar">{activeLesson.dialogue.avatar}</div><div className="dialogue-bubble"><button onClick={() => speak(activeLesson.dialogue.line)} aria-label="Play dialogue"><Icon name="sound" /></button><strong>{activeLesson.dialogue.line}</strong><span>{activeLesson.dialogue.translation}</span></div></div>
                   <div className="dialogue-options">
-                    <button className={dialogueAnswer === "wrong" ? "wrong" : ""} onClick={() => setDialogueAnswer("wrong")}>Dobro veče. <small>Good evening.</small></button>
-                    <button className={dialogueAnswer === "correct" ? "correct" : ""} onClick={() => setDialogueAnswer("correct")}><span>Zovem se Emma. Drago mi je.</span><small>My name is Emma. Nice to meet you.</small>{dialogueAnswer === "correct" && <Icon name="check" />}</button>
-                    <button onClick={() => setDialogueAnswer("wrong")}>Hvala, dobro sam. <small>Thanks, I’m well.</small></button>
+                    {activeLesson.dialogue.options.map((option) => { const correct = option.serbian === activeLesson.dialogue.answer; const state = dialogueAnswer !== "idle" && correct ? "correct" : dialogueAnswer === "wrong" && !correct ? "wrong" : ""; return <button key={option.serbian} className={state} onClick={() => setDialogueAnswer(correct ? "correct" : "wrong")}><span>{option.serbian}</span><small>{option.english}</small>{dialogueAnswer !== "idle" && correct && <Icon name="check" />}</button>; })}
                   </div>
-                  {dialogueAnswer !== "idle" && (
-                    <div className={`feedback ${dialogueAnswer}`}>
-                      <strong>{dialogueAnswer === "correct" ? "Savršeno! Perfect." : "That phrase doesn’t answer Nikola’s question."}</strong>
-                      <p>{dialogueAnswer === "correct" ? "You’ve introduced yourself and added a natural “nice to meet you.”" : "He asked “What’s your name?” Look for Zovem se…"}</p>
-                    </div>
-                  )}
+                  {dialogueAnswer !== "idle" && <div className={`feedback ${dialogueAnswer}`}><strong>{dialogueAnswer === "correct" ? "Savršeno! Perfect." : "That phrase does not answer the question yet."}</strong><p>{dialogueAnswer === "correct" ? activeLesson.dialogue.feedback : "Listen to the prompt once more, then choose a reply that directly fits it."}</p></div>}
                   <button className="primary-button wide" disabled={dialogueAnswer !== "correct"} onClick={completeLesson}>Finish lesson <span>→</span></button>
                 </section>
               )}
 
-              {step === 5 && lessonComplete && (
+              {step === 5 && activeLessonComplete && (
                 <section className="lesson-card completion-step">
-                  <div className="completion-badge"><Icon name="check" /></div>
-                  <span className="lesson-kicker">LEKCIJA ZAVRŠENA • LESSON COMPLETE</span>
-                  <h1>Bravo—you can meet someone in Serbian.</h1>
-                  <p className="lead">You learned three greetings, introduced yourself, and heard the soft ć sound.</p>
-                  <div className="earned-row">
-                    <div><span>+20</span><small>POINTS</small></div>
-                    <div><span>6/6</span><small>STEPS</small></div>
-                    <div><span>1</span><small>DAY STREAK</small></div>
-                  </div>
-                  <div className="you-can-say">
-                    <span>YOU CAN NOW SAY</span>
-                    <button onClick={() => speak("Zdravo! Zovem se Emma. Drago mi je.")}><Icon name="sound" /></button>
-                    <strong>“Zdravo! Zovem se Emma. Drago mi je.”</strong>
-                  </div>
-                  <button className="primary-button wide" onClick={() => setView("home")}>Back to your path <span>→</span></button>
-                  <button className="text-button centered" onClick={() => { setLessonComplete(false); setLessonStarted(true); window.localStorage.removeItem(lessonCompleteKey); goToStep(0); }}>Restart lesson</button>
+                  <div className="completion-badge"><Icon name="check" /></div><span className="lesson-kicker">LEKCIJA ZAVRŠENA • LESSON COMPLETE</span>
+                  <h1>Bravo — you completed Unit {activeLesson.unit}.</h1><p className="lead">You can now use a small but practical piece of Serbian in a real conversation.</p>
+                  <div className="earned-row"><div><span>+20</span><small>POINTS</small></div><div><span>6/6</span><small>STEPS</small></div><div><span>{completedCount}</span><small>UNITS</small></div></div>
+                  <div className="you-can-say"><span>YOU CAN NOW SAY</span><button onClick={() => speak(activeLesson.recap)} aria-label={`Play ${activeLesson.recap}`}><Icon name="sound" /></button><strong>“{activeLesson.recap}”</strong></div>
+                  <button className="primary-button wide" onClick={() => setView("home")}>Back to your path <span>→</span></button><button className="text-button centered" onClick={restartLesson}>Restart lesson</button>
                 </section>
               )}
 
-              {step > 0 && !(step === 5 && lessonComplete) && <button className="back-step" onClick={() => goToStep(step - 1)}>← Previous step</button>}
+              {step > 0 && !(step === 5 && activeLessonComplete) && <button className="back-step" onClick={() => goToStep(step - 1)}>← Previous step</button>}
             </div>
           </div>
         )}
 
         {view === "phrasebook" && (
           <div className="page phrasebook-page">
-            <div className="page-heading">
-              <div><span className="eyebrow">QUICK REFERENCE</span><h1>Your phrasebook</h1><p>Useful Serbian you can reach for in real life.</p></div>
-              <span className="alphabet-label">Serbian Latin</span>
-            </div>
-            <div className="phrasebook-toolbar">
-              <label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search in English or Serbian…" /></label>
-              <span>{filteredPhrases.length} saved phrases</span>
-            </div>
-            <section className="phrasebook-list">
-              <header><span>SERBIAN</span><span>ENGLISH</span><span>LISTEN</span></header>
-              {filteredPhrases.map(([latin, english]) => (
-                <article key={latin}>
-                  <div><strong>{latin}</strong></div>
-                  <p>{english}</p>
-                  <button className="sound-button" onClick={() => speak(latin)} aria-label={`Play ${latin}`}><Icon name="sound" /></button>
-                </article>
-              ))}
+            <div className="page-heading"><div><span className="eyebrow">QUICK REFERENCE</span><h1>Your phrasebook</h1><p>Useful Serbian in the same order it appears in the course.</p></div><span className="alphabet-label">Serbian Latin</span></div>
+            <div className="phrasebook-toolbar"><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search in English or Serbian…" /></label><span>{filteredPhrases.length} phrases</span></div>
+            <section className="phrasebook-list"><header><span>SERBIAN</span><span>ENGLISH</span><span>LISTEN</span></header>
+              {filteredPhrases.map((phrase) => <article key={`${phrase.unit}-${phrase.serbian}`}><div><strong>{phrase.serbian}</strong><small>Unit {phrase.unit}</small></div><p>{phrase.english}</p><button className="sound-button" onClick={() => speak(phrase.serbian)} aria-label={`Play ${phrase.serbian}`}><Icon name="sound" /></button></article>)}
               {filteredPhrases.length === 0 && <div className="empty-state">No phrases match that search yet.</div>}
             </section>
-            <div className="prototype-note"><strong>This phrasebook grows with each lesson.</strong><span>Complete lessons to add words you’ve actually learned, instead of collecting phrases without context.</span></div>
+            <div className="prototype-note"><strong>This phrasebook grows with the course.</strong><span>Every phrase here is taught in context first, so it is easier to remember when to use it.</span></div>
           </div>
         )}
 
-        <nav className="mobile-nav" aria-label="Mobile navigation">
-          {navItems.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => item.id === "lesson" ? beginLesson(step) : setView(item.id)}><Icon name={item.icon} /><span>{item.label}</span></button>)}
-        </nav>
+        <nav className="mobile-nav" aria-label="Mobile navigation">{navItems.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => handleNavigation(item.id)}><Icon name={item.icon} /><span>{item.label}</span></button>)}</nav>
       </main>
 
-      {namePromptOpen && (
-        <div className="welcome-overlay">
-          <section className="welcome-dialog" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
-            <BrandMark />
-            <span className="eyebrow">DOBRO DOŠLA • WELCOME</span>
-            <h2 id="welcome-title">What should your Serbian course call you?</h2>
-            <p>Enter your first name or a nickname. It stays only in this browser and can be changed later.</p>
-            <form onSubmit={(event) => { event.preventDefault(); saveLearnerName(); }}>
-              <label htmlFor="learner-name">Your name</label>
-              <input
-                id="learner-name"
-                autoFocus
-                maxLength={30}
-                value={nameDraft}
-                onChange={(event) => setNameDraft(event.target.value)}
-                placeholder="e.g. Emma"
-                autoComplete="given-name"
-              />
-              <button className="primary-button" type="submit" disabled={!nameDraft.trim()}>Start learning <span>→</span></button>
-            </form>
-          </section>
-        </div>
-      )}
+      {namePromptOpen && <div className="welcome-overlay"><section className="welcome-dialog" role="dialog" aria-modal="true" aria-labelledby="welcome-title"><BrandMark /><span className="eyebrow">DOBRO DOŠLA • WELCOME</span><h2 id="welcome-title">What should your Serbian course call you?</h2><p>Enter your first name or a nickname. It stays only in this browser and can be changed later.</p><form onSubmit={(event) => { event.preventDefault(); saveLearnerName(); }}><label htmlFor="learner-name">Your name</label><input id="learner-name" autoFocus maxLength={30} value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} placeholder="e.g. Emma" autoComplete="given-name" /><button className="primary-button" type="submit" disabled={!nameDraft.trim()}>Start learning <span>→</span></button></form></section></div>}
     </div>
   );
 }

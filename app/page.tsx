@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { foundationLessons, nextCourseStage, type FoundationLesson } from "../src/course/foundations";
 import { playSerbianAudio } from "../src/audio/playSerbianAudio";
 
-type View = "home" | "lesson" | "phrasebook";
+type View = "home" | "lessons" | "lesson" | "phrasebook";
 type AnswerState = "idle" | "correct" | "wrong";
 
 const learnerNameKey = "samo-polako-learner-name";
@@ -39,6 +39,8 @@ const firstLesson: FoundationLesson = {
     focus: "Zovem se",
     explanation:
       "literally means “I call myself.” Serbian often leaves out ja (“I”) because the verb ending already tells us who is speaking.",
+    practiceNote:
+      "Repeat it with a real name. The aim is to make the two-word introduction feel familiar before you start changing the name at the end.",
   },
   check: {
     prompt: "It’s 2 p.m. You enter a bakery. What do you say?",
@@ -46,12 +48,13 @@ const firstLesson: FoundationLesson = {
     options: ["Ćao!", "Dobar dan!", "Laku noć!"],
     answer: "Dobar dan!",
     explanation: "Dobar dan is the safe, polite choice during the day.",
+    wrongFeedback: "Think about the time of day and choose the polite daytime greeting.",
   },
   builder: {
     prompt: "How do you say “My name is Emma”?",
     words: ["Emma.", "se", "Zovem"],
     answer: "Zovem se Emma.",
-    explanation: "Start with Zovem, then add se and your name.",
+    hint: "Your name is the final piece. Use the two Serbian words you have just practised to introduce it.",
   },
   dialogue: {
     speaker: "Nikola",
@@ -153,10 +156,13 @@ export default function Home() {
 
   const activeLesson = courseLessons.find((lesson) => lesson.id === activeLessonId) ?? firstLesson;
   const activeLessonComplete = completedLessonIds.includes(activeLesson.id);
-  const activeLessonStarted = startedLessonId === activeLesson.id;
   const completedCount = courseLessons.filter((lesson) => completedLessonIds.includes(lesson.id)).length;
   const courseProgress = Math.round((completedCount / courseLessons.length) * 100);
-  const nextLesson = courseLessons.find((lesson) => !completedLessonIds.includes(lesson.id)) ?? firstLesson;
+  const lastCompletedLesson = [...courseLessons].reverse().find((lesson) => completedLessonIds.includes(lesson.id));
+  const startedLesson = courseLessons.find((lesson) => lesson.id === startedLessonId);
+  const homeLesson = startedLesson && !completedLessonIds.includes(startedLesson.id)
+    ? startedLesson
+    : lastCompletedLesson ?? firstLesson;
 
   const filteredPhrases = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -230,20 +236,19 @@ export default function Home() {
 
   const displayName = learnerName || "there";
   const avatarLetter = learnerName.charAt(0).toUpperCase() || "S";
-  const nextLessonStarted = startedLessonId === nextLesson.id;
-  const nextLessonComplete = completedLessonIds.includes(nextLesson.id);
-  const homeLessonProgress = nextLessonComplete ? 100 : nextLessonStarted ? ((step + 1) / 6) * 100 : 0;
-  const homeLessonAction = nextLessonComplete ? "Review lesson" : nextLessonStarted ? "Continue lesson" : "Start lesson";
+  const homeLessonStarted = startedLessonId === homeLesson.id;
+  const homeLessonComplete = completedLessonIds.includes(homeLesson.id);
+  const homeLessonProgress = homeLessonComplete ? 100 : homeLessonStarted ? ((step + 1) / 6) * 100 : 0;
+  const homeLessonAction = homeLessonComplete ? "Review lesson" : homeLessonStarted ? "Continue lesson" : "Start lesson";
 
-  const navItems: { id: View; label: string; icon: "home" | "book" | "chat" }[] = [
+  const navItems: { id: "home" | "lessons" | "phrasebook"; label: string; icon: "home" | "book" | "chat" }[] = [
     { id: "home", label: "Home", icon: "home" },
-    { id: "lesson", label: "Lessons", icon: "book" },
+    { id: "lessons", label: "Lessons", icon: "book" },
     { id: "phrasebook", label: "Phrasebook", icon: "chat" },
   ];
 
-  function handleNavigation(item: View) {
-    if (item === "lesson") beginLesson(nextLesson, nextLessonStarted ? step : 0);
-    else setView(item);
+  function handleNavigation(item: "home" | "lessons" | "phrasebook") {
+    setView(item);
   }
 
   return (
@@ -256,10 +261,10 @@ export default function Home() {
 
         <nav className="main-nav" aria-label="Main navigation">
           {navItems.map((item) => (
-            <button key={item.id} className={view === item.id ? "nav-item active" : "nav-item"} onClick={() => handleNavigation(item.id)}>
+            <button key={item.id} className={view === item.id || (item.id === "lessons" && view === "lesson") ? "nav-item active" : "nav-item"} onClick={() => handleNavigation(item.id)}>
               <Icon name={item.icon} />
               {item.label}
-              {item.id === "lesson" && <span className="nav-count">{courseLessons.length}</span>}
+              {item.id === "lessons" && <span className="nav-count">{courseLessons.length}</span>}
             </button>
           ))}
           <button className="nav-item" onClick={() => setView("home")}><Icon name="chart" />Progress</button>
@@ -295,33 +300,18 @@ export default function Home() {
             <section className="continue-card">
               <div className="continue-art" aria-hidden="true"><div className="sun-shape" /><span className="speech-chip first">Zdravo!</span><span className="speech-chip second">Hello!</span><div className="art-letter">Ž</div></div>
               <div className="continue-copy">
-                <div className="lesson-meta"><span>UNIT {nextLesson.unit}</span><span>{nextLesson.duration}</span></div>
-                <h2>{nextLessonComplete ? "Your foundations are ready to review." : nextLesson.title}</h2>
-                <p>{nextLesson.description}</p>
-                <div className="progress-row"><div className="progress-track"><span style={{ width: `${homeLessonProgress}%` }} /></div><small>{nextLessonComplete ? "Lesson complete" : nextLessonStarted ? `${step + 1} of 6 steps` : "Not started"}</small></div>
-                <button className="primary-button" onClick={() => beginLesson(nextLesson, nextLessonStarted ? step : 0)}>{homeLessonAction}<span>→</span></button>
+                <div className="lesson-meta"><span>UNIT {homeLesson.unit}</span><span>{homeLesson.duration}</span></div>
+                <h2>{homeLessonComplete ? `Ready to review: ${homeLesson.pathTitle}` : homeLesson.title}</h2>
+                <p>{homeLesson.description}</p>
+                <div className="progress-row"><div className="progress-track"><span style={{ width: `${homeLessonProgress}%` }} /></div><small>{homeLessonComplete ? "Lesson complete" : homeLessonStarted ? `${step + 1} of 6 steps` : "Not started"}</small></div>
+                <button className="primary-button" onClick={() => beginLesson(homeLesson, homeLessonStarted ? step : 0)}>{homeLessonAction}<span>→</span></button>
               </div>
             </section>
 
-            <section className="section-block">
-              <div className="section-title"><div><span className="eyebrow">YOUR PATH</span><h2>From first words to real conversations</h2></div><span className="path-duration">6 complete foundation lessons</span></div>
-              <div className="learning-path">
-                {courseLessons.map((lesson) => {
-                  const complete = completedLessonIds.includes(lesson.id);
-                  const started = startedLessonId === lesson.id;
-                  const unlocked = canOpenLesson(lesson);
-                  const status = complete ? "COMPLETE" : started ? "IN PROGRESS" : unlocked ? "READY" : "NEXT";
-                  return (
-                    <article key={lesson.id} className={`path-card ${unlocked ? "current" : "locked"}`} onClick={() => unlocked && beginLesson(lesson, started ? step : 0)}>
-                      <div className="path-top"><span className="unit-number">{String(lesson.unit).padStart(2, "0")}</span><span className={unlocked ? "status-pill" : "status-pill muted"}>{!unlocked && <Icon name="lock" />}{status}</span></div>
-                      <div className={`path-icon ${lesson.color}`}>{lesson.icon}</div>
-                      <h3>{lesson.pathTitle}</h3>
-                      <p>{lesson.description}</p>
-                      <div className="lesson-dots"><span className={complete || started ? "done" : ""} /><span className={complete ? "done" : ""} /><span className={complete ? "done" : ""} /><span className={complete ? "done" : ""} /></div>
-                      <strong className={unlocked ? "path-link" : "path-link muted-text"}>{complete ? "Review unit" : started ? "Continue unit" : unlocked ? "Start unit" : "Complete the previous unit"}<span>{unlocked && "→"}</span></strong>
-                    </article>
-                  );
-                })}
+            <section className="course-roadmap current-stage" aria-labelledby="current-stage-title">
+              <div><span className="eyebrow">CURRENT STAGE</span><h2 id="current-stage-title">Serbian foundations</h2><p>Six connected units build the language needed for a calm first conversation: who you are, what you need, the people around you, and practical personal details.</p></div>
+              <div className="roadmap-list">
+                {courseLessons.map((lesson) => <div key={lesson.id}><span>{String(lesson.unit).padStart(2, "0")}</span><p><strong>{lesson.pathTitle}</strong><small>{lesson.description}</small></p></div>)}
               </div>
             </section>
 
@@ -338,6 +328,33 @@ export default function Home() {
               <button className="secondary-button" onClick={() => beginLesson(firstLesson, 2)}>Try a sound sample <span>→</span></button>
             </section>
             <footer className="accuracy-note">Practical A1 skills • Serbian Latin alphabet throughout</footer>
+          </div>
+        )}
+
+        {view === "lessons" && (
+          <div className="page lessons-page">
+            <div className="page-heading">
+              <div><span className="eyebrow">YOUR PATH</span><h1>From first words to real conversations</h1><p>Complete each unit in order. Every lesson prepares the language you need for the next one.</p></div>
+              <span className="path-duration">6 foundation lessons</span>
+            </div>
+            <div className="learning-path">
+              {courseLessons.map((lesson) => {
+                const complete = completedLessonIds.includes(lesson.id);
+                const started = startedLessonId === lesson.id;
+                const unlocked = canOpenLesson(lesson);
+                const status = complete ? "COMPLETE" : started ? "IN PROGRESS" : unlocked ? "READY" : "NEXT";
+                return (
+                  <article key={lesson.id} className={`path-card ${unlocked ? "current" : "locked"}`} onClick={() => unlocked && beginLesson(lesson, started ? step : 0)}>
+                    <div className="path-top"><span className="unit-number">{String(lesson.unit).padStart(2, "0")}</span><span className={unlocked ? "status-pill" : "status-pill muted"}>{!unlocked && <Icon name="lock" />}{status}</span></div>
+                    <div className={`path-icon ${lesson.color}`}>{lesson.icon}</div>
+                    <h3>{lesson.pathTitle}</h3>
+                    <p>{lesson.description}</p>
+                    <div className="lesson-dots"><span className={complete || started ? "done" : ""} /><span className={complete ? "done" : ""} /><span className={complete ? "done" : ""} /><span className={complete ? "done" : ""} /></div>
+                    <strong className={unlocked ? "path-link" : "path-link muted-text"}>{complete ? "Review unit" : started ? "Continue unit" : unlocked ? "Start unit" : "Complete the previous unit"}<span>{unlocked && "→"}</span></strong>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -406,7 +423,7 @@ export default function Home() {
                   <p className="lead">A small explanation now makes the phrases easier to reuse later.</p>
                   <div className="grammar-pattern"><strong>{activeLesson.grammar.focus}</strong><span>{activeLesson.grammar.explanation}</span></div>
                   {activeLesson.numberReference && <div className="number-grid" aria-label="Serbian numbers zero to ten">{activeLesson.numberReference.map((item) => <div key={item.number}><strong>{item.number}</strong><span>{item.word}</span></div>)}</div>}
-                  <div className="grammar-note"><span>KEEP IT SIMPLE</span><p>Say the phrases as complete pieces first. You will meet the individual endings again in later lessons, with more context and practice.</p></div>
+                  <div className="grammar-note"><span>PRACTISE IT</span><p>{activeLesson.grammar.practiceNote}</p></div>
                   <button className="primary-button wide" onClick={() => goToStep(3)}>Continue <span>→</span></button>
                 </section>
               )}
@@ -422,7 +439,7 @@ export default function Home() {
                       return <button key={option} className={`answer-option ${selectedClass}`} onClick={() => setAnswer(isCorrect ? "correct" : "wrong")}><span className="answer-letter">{String.fromCharCode(65 + index)}</span><strong>{option}</strong>{answer !== "idle" && isCorrect && <Icon name="check" />}</button>;
                     })}
                   </div>
-                  {answer !== "idle" && <div className={`feedback ${answer}`}><strong>{answer === "correct" ? "Odlično! Excellent." : "Almost — take another look at the phrase."}</strong><p>{activeLesson.check.explanation}</p></div>}
+                  {answer !== "idle" && <div className={`feedback ${answer}`}><strong>{answer === "correct" ? "Odlično! Excellent." : "Almost — take another look at the phrase."}</strong><p>{answer === "correct" ? activeLesson.check.explanation : activeLesson.check.wrongFeedback}</p></div>}
                   <button className="primary-button wide" disabled={answer !== "correct"} onClick={() => goToStep(4)}>Continue <span>→</span></button>
                 </section>
               )}
@@ -433,8 +450,9 @@ export default function Home() {
                   <h1>{activeLesson.builder.prompt}</h1><p className="lead">Tap the words in the order you would say them.</p>
                   <div className={`sentence-dropzone ${sentenceChecked}`}>{sentence.length === 0 && <span>Build your Serbian sentence here</span>}{sentence.map((word) => <button key={word} onClick={() => toggleSentenceWord(word)}>{word}</button>)}</div>
                   <div className="word-bank">{activeLesson.builder.words.map((word) => <button key={word} disabled={sentence.includes(word)} onClick={() => toggleSentenceWord(word)}>{word}</button>)}</div>
-                  <div className="grammar-note"><span>{activeLesson.grammar.title}</span><p><strong>{activeLesson.grammar.focus}</strong> {activeLesson.builder.explanation}</p></div>
+                  <div className="grammar-note"><span>A GENTLE HINT</span><p>{activeLesson.builder.hint}</p></div>
                   {sentenceChecked !== "idle" && <div className={`feedback ${sentenceChecked}`}><strong>{sentenceChecked === "correct" ? "Tako je! That’s right." : "Not quite — rearrange the words and try again."}</strong></div>}
+                  {activeLesson.pronunciation && sentenceChecked === "correct" && <div className="grammar-note"><span>WHY THIS WORKS</span><p><strong>{activeLesson.grammar.focus}</strong> {activeLesson.grammar.explanation}</p></div>}
                   <button className="primary-button wide" disabled={sentence.length !== activeLesson.builder.words.length} onClick={() => { if (sentence.join(" ") === activeLesson.builder.answer) { if (sentenceChecked === "correct") goToStep(5); else setSentenceChecked("correct"); } else setSentenceChecked("wrong"); }}>{sentenceChecked === "correct" ? "Continue" : "Check answer"}<span>→</span></button>
                 </section>
               )}
@@ -479,7 +497,7 @@ export default function Home() {
           </div>
         )}
 
-        <nav className="mobile-nav" aria-label="Mobile navigation">{navItems.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => handleNavigation(item.id)}><Icon name={item.icon} /><span>{item.label}</span></button>)}</nav>
+        <nav className="mobile-nav" aria-label="Mobile navigation">{navItems.map((item) => <button key={item.id} className={view === item.id || (item.id === "lessons" && view === "lesson") ? "active" : ""} onClick={() => handleNavigation(item.id)}><Icon name={item.icon} /><span>{item.label}</span></button>)}</nav>
       </main>
 
       {namePromptOpen && <div className="welcome-overlay"><section className="welcome-dialog" role="dialog" aria-modal="true" aria-labelledby="welcome-title"><BrandMark /><span className="eyebrow">DOBRO DOŠLA • WELCOME</span><h2 id="welcome-title">What should your Serbian course call you?</h2><p>Enter your first name or a nickname. It stays only in this browser and can be changed later.</p><form onSubmit={(event) => { event.preventDefault(); saveLearnerName(); }}><label htmlFor="learner-name">Your name</label><input id="learner-name" autoFocus maxLength={30} value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} placeholder="e.g. Emma" autoComplete="given-name" /><button className="primary-button" type="submit" disabled={!nameDraft.trim()}>Start learning <span>→</span></button></form></section></div>}

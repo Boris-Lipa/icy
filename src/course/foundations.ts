@@ -20,6 +20,7 @@ export type FoundationLesson = {
     title: string;
     focus: string;
     explanation: string;
+    practiceNote: string;
   };
   check: {
     prompt: string;
@@ -27,12 +28,13 @@ export type FoundationLesson = {
     options: string[];
     answer: string;
     explanation: string;
+    wrongFeedback: string;
   };
   builder: {
     prompt: string;
     words: string[];
     answer: string;
-    explanation: string;
+    hint: string;
   };
   dialogue: {
     speaker: string;
@@ -82,6 +84,8 @@ export const foundationLessons: FoundationLesson[] = [
       focus: "Ja sam",
       explanation:
         "means “I am.” Serbian often leaves ja out because sam already tells the listener who is speaking, but keeping it at the start makes this early pattern especially clear.",
+      practiceNote:
+        "Say the pattern with two places you know. Keep iz + place together as one useful spoken chunk for now.",
     },
     check: {
       prompt: "Nikola asks: Odakle si? What does he want to know?",
@@ -89,12 +93,13 @@ export const foundationLessons: FoundationLesson[] = [
       options: ["Where are you from?", "What is your name?", "How old are you?"],
       answer: "Where are you from?",
       explanation: "Odakle asks about origin: where someone comes from.",
+      wrongFeedback: "Read Nikola’s question again: he is asking for one specific piece of personal information.",
     },
     builder: {
       prompt: "Build: “I am from England.”",
       words: ["Engleske.", "iz", "sam", "Ja"],
       answer: "Ja sam iz Engleske.",
-      explanation: "Put the speaker first, then sam, then the useful chunk iz + place.",
+      hint: "Look for a natural order: speaker, state, then origin. The capitalized place word belongs at the end.",
     },
     dialogue: {
       speaker: "Nikola",
@@ -138,6 +143,8 @@ export const foundationLessons: FoundationLesson[] = [
       focus: "Ne razumem",
       explanation:
         "puts ne directly before the verb razumem (“I understand”). This is the core pattern for a simple Serbian negative: ne + verb.",
+      practiceNote:
+        "Use this pair whenever speech is too fast. It is a complete, polite recovery move — not a sign that you are failing.",
     },
     check: {
       prompt: "A friend explains something in Serbian and you miss it. What is the most useful first reply?",
@@ -145,12 +152,13 @@ export const foundationLessons: FoundationLesson[] = [
       options: ["Ne razumem.", "Dobar dan!", "Ja sam iz Srbije."],
       answer: "Ne razumem.",
       explanation: "Ne razumem tells the other person what happened without ending the exchange.",
+      wrongFeedback: "Choose the line that tells the listener you did not understand.",
     },
     builder: {
       prompt: "Build: “More slowly, please.”",
       words: ["molim.", "Sporije,"],
       answer: "Sporije, molim.",
-      explanation: "Put the request first, then soften it with molim.",
+      hint: "One word describes the pace; the other makes the request polite. Think about which job comes first.",
     },
     dialogue: {
       speaker: "Nikola",
@@ -193,7 +201,9 @@ export const foundationLessons: FoundationLesson[] = [
       title: "A FIRST LOOK AT GENDER",
       focus: "jedan / jedna / jedno",
       explanation:
-        "all mean “one.” Serbian nouns belong to a grammatical gender, so nearby words often change to agree. The ending -a is often feminine, but learn each noun with its own form.",
+        "all mean “one.” Jedan is the masculine form, jedna is feminine, and jedno is neuter — neither masculine nor feminine. Serbian nouns belong to a grammatical gender, so nearby words often change to agree. The ending -a is often feminine, but learn each noun with its own form.",
+      practiceNote:
+        "Say the three pairs aloud: jedan sto, jedna knjiga, jedno pitanje. The goal today is to notice and recognise the matching form, not to memorise every rule.",
     },
     check: {
       prompt: "Which phrase means “one book”?",
@@ -201,12 +211,13 @@ export const foundationLessons: FoundationLesson[] = [
       options: ["Jedan knjiga", "Jedna knjiga", "Jedno knjiga"],
       answer: "Jedna knjiga",
       explanation: "Knjiga is feminine, so it takes jedna.",
+      wrongFeedback: "Compare the three forms for “one” with the phrase list, then choose the one that matches knjiga.",
     },
     builder: {
       prompt: "Build: “This is a book.”",
       words: ["knjiga.", "je", "Ovo"],
       answer: "Ovo je knjiga.",
-      explanation: "Ovo je is a handy fixed frame: point, then name the thing.",
+      hint: "This short sentence has three jobs: point, link, then name. Put the pointing word at the beginning.",
     },
     dialogue: {
       speaker: "Nikola",
@@ -250,6 +261,8 @@ export const foundationLessons: FoundationLesson[] = [
       focus: "moj / moja",
       explanation:
         "both mean “my.” Moj pairs with brat, while moja pairs with sestra. Serbian asks possessive words to agree with the noun, so keep the pair together as you learn it.",
+      practiceNote:
+        "Learn each possessive together with a family word: moj brat and moja sestra. That is more useful than trying to memorise a chart alone.",
     },
     check: {
       prompt: "Which sentence says “This is my sister”?",
@@ -257,12 +270,13 @@ export const foundationLessons: FoundationLesson[] = [
       options: ["Ovo je moj sestra.", "Ovo je moja sestra.", "Ovo je moja brat."],
       answer: "Ovo je moja sestra.",
       explanation: "Sestra is feminine, so the matching form is moja.",
+      wrongFeedback: "Find the option where the possessive matches the word for sister.",
     },
     builder: {
       prompt: "Build: “I have a brother.”",
       words: ["brata.", "Imam"],
       answer: "Imam brata.",
-      explanation: "Imam is the everyday form for “I have.” Keep brata with it as a complete family phrase.",
+      hint: "This is a two-part answer: first say that you have someone, then name the family member.",
     },
     dialogue: {
       speaker: "Emma",
@@ -306,6 +320,8 @@ export const foundationLessons: FoundationLesson[] = [
       focus: "Imam ... godina",
       explanation:
         "literally means “I have ... years.” English uses “I am” for age; Serbian uses imam, the same verb you met in imam brata (“I have a brother”).",
+      practiceNote:
+        "Keep the age pattern together as you practise it. Later, change only the number while the rest of the sentence stays in place.",
     },
     check: {
       prompt: "How would you answer: Koliko imaš godina?",
@@ -313,12 +329,13 @@ export const foundationLessons: FoundationLesson[] = [
       options: ["Imam dvadeset pet godina.", "Ja sam iz Engleske.", "Ovo je moja sestra."],
       answer: "Imam dvadeset pet godina.",
       explanation: "For age in Serbian, use imam + number + godina.",
+      wrongFeedback: "Choose the line that contains an age, rather than where someone is from or who is in their family.",
     },
     builder: {
       prompt: "Build: “I am twenty-five years old.”",
       words: ["godina.", "pet", "dvadeset", "Imam"],
       answer: "Imam dvadeset pet godina.",
-      explanation: "Start with imam, then say the number before godina.",
+      hint: "Start with the verb you already met for “I have.” Keep the number together and leave the word for years to the end.",
     },
     dialogue: {
       speaker: "Nikola",
